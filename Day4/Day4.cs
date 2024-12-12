@@ -28,7 +28,7 @@ public class Day4
             }
         }
 
-        Console.WriteLine($"Day4 : totalXMAS={totalXmas} totalCorrectXmas={totalCorrectXmas}");
+        Console.WriteLine($"Day4: totalXMAS={totalXmas} totalCorrectXmas={totalCorrectXmas}");
     }
 
     private static int CountFromOrigin(char[][] grid, int originX, int originY, char[] word)

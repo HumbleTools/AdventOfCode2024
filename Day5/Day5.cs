@@ -26,7 +26,7 @@ public class Day5
             : 0;
 
         Console.WriteLine(
-            $"Day5 : centerValidUpdatesSum={centerValidUpdatesSum} orderedInvalidUpdatesSum={orderedInvalidUpdatesSum}");
+            $"Day5: centerValidUpdatesSum={centerValidUpdatesSum} orderedInvalidUpdatesSum={orderedInvalidUpdatesSum}");
     }
 
     private static bool IsValidUpdate(int[] update) => update
