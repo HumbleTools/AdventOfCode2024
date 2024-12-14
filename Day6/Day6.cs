@@ -7,24 +7,51 @@ namespace AdventOfCode2024.Day6;
 /// </summary>
 public static class Day6
 {
-    private const char Outside = 'o';
+    private const string GuardChars = "^>v<";
     private const char Object = '#';
     private const char Marked = 'X';
-    private const string GuardChars = "^>v<";
+    private const char Outside = '/';
+    private const char Vertical = '|';
+    private const char Horizontal = '-';
+    private const char BothDirections = '+';
+    private const char NewObstacle = 'O';
     private static readonly (int x, int y)[] MoveForwardTuples = [(0, -1), (1, 0), (0, 1), (-1, 0)];
     private static char[][] _grid = null!;
     private static (int x, int y) _guard;
-    private static bool _printGrid = false;
+    private static bool _shouldPrintGrid;
 
-    public static void Run(string input, bool printGrid = false)
+    public static void Run(string input, bool shouldPrintGrid = false)
     {
-        _printGrid = printGrid;
-        _grid = input
-            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-            .Select(it => Regex.Matches(it, @".").Select(match => match.Value[0]).ToArray())
-            .ToArray();
+        _shouldPrintGrid = shouldPrintGrid;
+        _grid = ResetGrid(input);
         _guard = FindGuardPosition();
         
+        WalkGrid();
+        var distinctPositions = CountDistinctPositions();
+
+        var numberOfLoops = 0;
+        using var gridPositionsEnumerator = GetAllGridPositions().GetEnumerator();
+        while (gridPositionsEnumerator.MoveNext())
+        {
+            _grid = ResetGrid(input);    
+            _guard = FindGuardPosition();
+            var currentPosition = gridPositionsEnumerator.Current;
+            if (IsGuardAt(currentPosition) || IsObjectAtPosition(Object, currentPosition))
+            {
+                continue;
+            }
+            MarkPosition(currentPosition, NewObstacle);
+            if (IsGuardInALoop())
+            {
+                numberOfLoops++;
+            }
+        }
+        
+        Console.WriteLine($"Day6 : distinctPositions={distinctPositions} numberOfLoops={numberOfLoops}");
+    }
+
+    private static void WalkGrid()
+    {
         PrintGrid();
         while (IsOnGrid(_guard))
         {
@@ -35,9 +62,17 @@ public static class Day6
 
             MoveForward();
         }
-
-        Console.WriteLine($"Day6 : distinctPositions={CountDistinctPositions()}");
     }
+
+    private static bool IsGuardInALoop()
+    {
+        throw new NotImplementedException();
+    }
+
+    private static char[][] ResetGrid(string input) => input
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+            .Select(it => Regex.Matches(it, @".").Select(match => match.Value[0]).ToArray())
+            .ToArray();
 
     private static bool IsOnGrid((int x, int y) position) =>
         position.y >= 0 && position.y < _grid.Length && position.x >= 0 && position.x < _grid[0].Length;
@@ -54,7 +89,7 @@ public static class Day6
 
     private static void PrintGrid()
     {
-        if (!_printGrid)
+        if (!_shouldPrintGrid)
         {
             return;
         }
@@ -99,8 +134,15 @@ public static class Day6
 
     private static (int posX, int posY) FindGuardPosition() => _grid
         .SelectMany((line, lineIndex) => 
-            line.Select((gridChar, charIndex) => (gridChar, x: charIndex, y: lineIndex)))
-        .Where(tuple => GuardChars.IndexOf(tuple.gridChar) >= 0)
-        .Select(tuple => (tuple.x, tuple.y))
+            line.Select((_, charIndex) => (x: charIndex, y: lineIndex)))
+        .Where(IsGuardAt)
         .First();
+
+    private static bool IsGuardAt((int x, int y) position) => GuardChars.IndexOf(GetGridChar(position)) >= 0;
+    private static bool IsObjectAtPosition(char objectChar, (int x, int y) position) => GetGridChar(position) == objectChar;
+
+    private static IEnumerable<(int posX, int posY)> GetAllGridPositions() => _grid
+        .SelectMany((line, lineIndex) =>
+            line.Select((gridChar, charIndex) => (gridChar, x: charIndex, y: lineIndex)))
+        .Select(tuple => (tuple.x, tuple.y));
 }
