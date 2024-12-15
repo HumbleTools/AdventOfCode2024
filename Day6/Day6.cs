@@ -8,6 +8,7 @@ namespace AdventOfCode2024.Day6;
 public static class Day6
 {
     private const string GuardChars = "^>v<";
+    private const string PathChars = "|-|-";
     private const char Object = '#';
     private const char Marked = 'X';
     private const char Outside = '/';
@@ -17,15 +18,16 @@ public static class Day6
     private const char NewObstacle = 'O';
     private static readonly (int x, int y)[] MoveForwardTuples = [(0, -1), (1, 0), (0, 1), (-1, 0)];
     private static char[][] _grid = null!;
+    private static char[][] _guardHistory = null!;
     private static (int x, int y) _guard;
     private static bool _shouldPrintGrid;
 
     public static void Run(string input, bool shouldPrintGrid = false)
     {
         _shouldPrintGrid = shouldPrintGrid;
-        _grid = ResetGrid(input);
-        _guard = FindGuardPosition();
-        
+        ResetGrid(input);
+        FindGuardPosition();
+
         WalkGrid();
         var distinctPositions = CountDistinctPositions();
 
@@ -33,20 +35,21 @@ public static class Day6
         using var gridPositionsEnumerator = GetAllGridPositions().GetEnumerator();
         while (gridPositionsEnumerator.MoveNext())
         {
-            _grid = ResetGrid(input);    
-            _guard = FindGuardPosition();
+            ResetGrid(input);
+            FindGuardPosition();
             var currentPosition = gridPositionsEnumerator.Current;
             if (IsGuardAt(currentPosition) || IsObjectAtPosition(Object, currentPosition))
             {
                 continue;
             }
+
             MarkPosition(currentPosition, NewObstacle);
             if (IsGuardInALoop())
             {
                 numberOfLoops++;
             }
         }
-        
+
         Console.WriteLine($"Day6 : distinctPositions={distinctPositions} numberOfLoops={numberOfLoops}");
     }
 
@@ -69,10 +72,14 @@ public static class Day6
         throw new NotImplementedException();
     }
 
-    private static char[][] ResetGrid(string input) => input
+    private static void ResetGrid(string input)
+    {
+        _grid = input
             .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
             .Select(it => Regex.Matches(it, @".").Select(match => match.Value[0]).ToArray())
             .ToArray();
+        _guardHistory = Enumerable.Repeat(Enumerable.Repeat('.', _grid[0].Length).ToArray(), _grid.Length).ToArray();
+    }
 
     private static bool IsOnGrid((int x, int y) position) =>
         position.y >= 0 && position.y < _grid.Length && position.x >= 0 && position.x < _grid[0].Length;
@@ -93,24 +100,33 @@ public static class Day6
         {
             return;
         }
+
         foreach (var line in _grid)
         {
             Console.WriteLine(line);
         }
+
         Console.WriteLine();
     }
 
     private static void MarkPosition((int x, int y) position, char mark)
     {
-        if (IsOnGrid(position))
+        if (!IsOnGrid(position))
         {
-            _grid[position.y][position.x] = mark;
+            return;
         }
+
+        if (GuardChars.Contains(mark))
+        {
+            _guardHistory[position.y][position.x] = mark;
+        }
+
+        _grid[position.y][position.x] = mark;
     }
 
     private static int CountDistinctPositions() => _grid
         .SelectMany(line => line)
-        .Count(gridChar => gridChar==Marked);
+        .Count(gridChar => gridChar == Marked);
 
     private static void TurnRight()
     {
@@ -118,7 +134,7 @@ public static class Day6
         _grid[_guard.y][_guard.x] = guardFacingIndex == GuardChars.Length - 1
             ? GuardChars[0]
             : GuardChars[++guardFacingIndex];
-        
+
         PrintGrid();
     }
 
@@ -133,13 +149,15 @@ public static class Day6
         IsOnGrid(position) ? _grid[position.y][position.x] : Outside;
 
     private static (int posX, int posY) FindGuardPosition() => _grid
-        .SelectMany((line, lineIndex) => 
+        .SelectMany((line, lineIndex) =>
             line.Select((_, charIndex) => (x: charIndex, y: lineIndex)))
         .Where(IsGuardAt)
         .First();
 
-    private static bool IsGuardAt((int x, int y) position) => GuardChars.IndexOf(GetGridChar(position)) >= 0;
-    private static bool IsObjectAtPosition(char objectChar, (int x, int y) position) => GetGridChar(position) == objectChar;
+    private static bool IsGuardAt((int x, int y) position) => GuardChars.Contains(GetGridChar(position));
+
+    private static bool IsObjectAtPosition(char objectChar, (int x, int y) position) =>
+        GetGridChar(position) == objectChar;
 
     private static IEnumerable<(int posX, int posY)> GetAllGridPositions() => _grid
         .SelectMany((line, lineIndex) =>
