@@ -28,7 +28,17 @@ public static class Day6
         ResetGrid(input);
         FindGuardPosition();
 
-        WalkGrid();
+        PrintGrid();
+        while (IsOnGrid(_guard))
+        {
+            while (IsFacingObstruction())
+            {
+                TurnRight();
+            }
+
+            MoveForward1();
+            PrintGrid();
+        }
         var distinctPositions = CountDistinctPositions();
 
         var numberOfLoops = 0;
@@ -53,23 +63,25 @@ public static class Day6
         Console.WriteLine($"Day6 : distinctPositions={distinctPositions} numberOfLoops={numberOfLoops}");
     }
 
-    private static void WalkGrid()
+    private static bool IsGuardInALoop()
     {
-        PrintGrid();
         while (IsOnGrid(_guard))
         {
+            bool hasTurned = false;
             while (IsFacingObstruction())
             {
                 TurnRight();
+                hasTurned = true;
             }
 
-            MoveForward();
+            var loopDetected = MoveForward2(hasTurned);
+            PrintGrid();
+            if (loopDetected)
+            {
+                return true;
+            }
         }
-    }
-
-    private static bool IsGuardInALoop()
-    {
-        throw new NotImplementedException();
+        return false;
     }
 
     private static void ResetGrid(string input)
@@ -84,14 +96,25 @@ public static class Day6
     private static bool IsOnGrid((int x, int y) position) =>
         position.y >= 0 && position.y < _grid.Length && position.x >= 0 && position.x < _grid[0].Length;
 
-    private static void MoveForward()
+    private static void MoveForward1()
     {
         (int x, int y) previousPosition = (_guard.x, _guard.y);
-        var guardChar = GetGridChar(_guard);
+        var savedGuardChar = GetGridChar(_guard);
         _guard = _guard.Sum(GetMoveForwardTuple());
         MarkPosition(previousPosition, Marked);
-        MarkPosition(_guard, guardChar);
-        PrintGrid();
+        MarkPosition(_guard, savedGuardChar);
+    }
+
+    private static bool MoveForward2(bool hasTurned)
+    {
+        (int x, int y) previousPosition = (_guard.x, _guard.y);
+        var savedGuardChar = GetGridChar(_guard);
+        _guard = _guard.Sum(GetMoveForwardTuple());
+        var charForPreviousPosition = hasTurned ? BothDirections : PathChars[GuardChars.IndexOf(savedGuardChar)];
+        MarkPosition(previousPosition, charForPreviousPosition);
+        MarkPosition(_guard, savedGuardChar);
+        MarkHistory(_guard, savedGuardChar);
+        return savedGuardChar == _guardHistory[_guard.y][_guard.x];
     }
 
     private static void PrintGrid()
@@ -116,12 +139,17 @@ public static class Day6
             return;
         }
 
-        if (GuardChars.Contains(mark))
+        _grid[position.y][position.x] = mark;
+    }
+    
+    private static void MarkHistory((int x, int y) position, char mark)
+    {
+        if (!IsOnGrid(position))
         {
-            _guardHistory[position.y][position.x] = mark;
+            return;
         }
 
-        _grid[position.y][position.x] = mark;
+        _guardHistory[position.y][position.x] = mark;
     }
 
     private static int CountDistinctPositions() => _grid

@@ -10,4 +10,4 @@ Day2.Run(File.ReadAllText("day2/data.txt"));
 Day3.Run(File.ReadAllText("day3/data.txt"));
 Day4.Run(File.ReadAllText("day4/data.txt"));
 Day5.Run(File.ReadAllText("day5/data.txt"));*/
-Day6.Run(File.ReadAllText("day6/data.txt"));
+Day6.Run(File.ReadAllText("day6/test.txt"));
